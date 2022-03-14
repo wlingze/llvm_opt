@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <iterator>
 #include <llvm/ADT/STLForwardCompat.h>
+#include <llvm/ADT/iterator_range.h>
+#include <llvm/Support/MathExtras.h>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -42,8 +44,10 @@ struct FrameworkTypeSupport<Direction::kForward> {
  */
 template <> //
 struct FrameworkTypeSupport<Direction::kBackward> {
-  typedef iterator_range<Function::const_iterator> BBTraversalConstRange;
-  typedef iterator_range<BasicBlock::const_iterator> InstTraversalConstRange;
+  typedef iterator_range<Function::BasicBlockListType::const_reverse_iterator>
+      BBTraversalConstRange;
+  typedef iterator_range<BasicBlock::InstListType::const_reverse_iterator>
+      InstTraversalConstRange;
 };
 
 /**
@@ -102,7 +106,7 @@ private:
       if (!Mask[MaskIdx++]) {
         continue;
       }
-      errs() << MaskIdx << "  " << Elem << ", ";
+      errs() << Elem << ", ";
     } // for (MaskIdx ∈ [0, Mask.size()))
     errs() << "}";
   }
@@ -116,7 +120,7 @@ private:
       errs() << "\t";
       printDomainWithMask(getBoundaryVal(*InstParent));
       errs() << "\n";
-    } // if (&Inst == &(*InstParent->begin()))
+    } //
     outs() << Inst << "\n";
     errs() << "\t";
     printDomainWithMask(InstDomainValMap.at(&Inst));
@@ -256,7 +260,8 @@ private:
    */
   METHOD_ENABLE_IF_DIRECTION(Direction::kBackward, BBTraversalConstRange)
   getBBTraversalOrder(const Function &F) const {
-    return make_range(F.getBasicBlockList().rbegin(), F.getBasicBlockList().rend());
+    return make_range(F.getBasicBlockList().rbegin(),
+                      F.getBasicBlockList().rend());
   }
   METHOD_ENABLE_IF_DIRECTION(Direction::kForward, BBTraversalConstRange)
   getBBTraversalOrder(const Function &F) const {
@@ -286,7 +291,6 @@ private:
     DomainVal_t InputBB;
     bool Changes = false;
     for (const auto &BB : getBBTraversalOrder(F)) {
-      BB.print(outs());
       InputBB = getBoundaryVal(BB);
       for (const auto &Inst : getInstTraversalOrder(BB)) {
         Changes |= transferFunc(Inst, InputBB, InstDomainValMap.at(&Inst));
@@ -302,7 +306,7 @@ private:
   /**
    * @todo(cscd70) Please implement this method for every child class.
    */
-  virtual void initializeDomainFromInst(const Instruction &Inst)  = 0;
+  virtual void initializeDomainFromInst(const Instruction &Inst) = 0;
   /**
    * @brief Initialize the domain from each instruction and/or argument.
    */

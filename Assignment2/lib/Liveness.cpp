@@ -6,6 +6,7 @@
 #include "dfa/MeetOp.h"
 #include <llvm/IR/Argument.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/InstrTypes.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
 #include <llvm/Pass.h>
@@ -38,18 +39,17 @@ private:
     DomainVal_t tmp = IV;
 
     const Value *ValunInst = dyn_cast<Value>(&Inst);
-    for(auto &Var : Domain){
-        if (Var.V == ValunInst){
-            tmp[position(Var)] = false;
-        }
+    for (auto &Var : Domain) {
+      if (Var.V == ValunInst) {
+        tmp[position(Var)] = false;
+      }
     }
 
-
     for (auto &Op : Inst.operands()) {
-        // gen
-        if (isa<Value>(Op) || isa<Argument>(Op)){
-            tmp[position(Variable(Op))] = true;
-        }
+      // gen
+      if (isa<Value>(Op) || isa<Argument>(Op)) {
+        tmp[position(Variable(Op))] = true;
+      }
     }
 
     bool isChange = OV != tmp;
